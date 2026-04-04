@@ -7,13 +7,13 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey:            'AIzaSyBicsbBog_sdw-Ld54EHzdyZ6VtsZ_G1ZA',
-  authDomain:        'mindsync-9e1ea.firebaseapp.com',
-  projectId:         'mindsync-9e1ea',
-  storageBucket:     'mindsync-9e1ea.firebasestorage.app',
-  messagingSenderId: '582899265498',
-  appId:             '1:582899265498:web:93cb44b8f6a6f16c8bdae3',
-  measurementId:     'G-J3PBENYTPB',
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
