@@ -1,0 +1,17 @@
+{
+  "name": "mindsync-ai",
+  "version": "1.0.0",
+  "description": "MindSync AI — Adaptive Mental Health Coaching Platform",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "firebase": "^10.14.1"
+  }
+}
