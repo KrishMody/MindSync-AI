@@ -6,6 +6,16 @@
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from './firebase.js';
 import { showPage } from './router.js';
+import { loadChatHistory } from './coach.js';
+import { isDemoCredentials, seedDemoUserData, updateUserIdentityUI } from './demo.js';
+
+function clearDemoUserData() {
+    localStorage.removeItem('isDemoUser');
+    localStorage.removeItem('currentUserName');
+    localStorage.removeItem('currentUserInitials');
+    localStorage.removeItem('currentUserEmail');
+    updateUserIdentityUI();
+}
 
 // ============================
 // Login — Real Firebase Auth
@@ -18,8 +28,18 @@ export async function handleLogin(e) {
     const btn = e.target.querySelector('button[type="submit"]');
     btn.innerHTML = '<span class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></span>';
 
+    if (isDemoCredentials(email, pass)) {
+        seedDemoUserData();
+        loadChatHistory();
+        showToast('Demo environment loaded with 35 days of sample data.', 'success');
+        showPage('page-dashboard');
+        btn.innerHTML = 'Sign In <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        return;
+    }
+
     try {
         await signInWithEmailAndPassword(auth, email, pass);
+        clearDemoUserData();
         showToast('Login successful. Synchronizing neuro-patterns...', 'success');
         showPage('page-dashboard');
     } catch (err) {
@@ -46,6 +66,7 @@ export async function handleSignup(e) {
 
     try {
         await createUserWithEmailAndPassword(auth, email, pass);
+        clearDemoUserData();
         showToast('Profile initialized successfully.', 'success');
         showPage('page-onboarding');
     } catch (err) {
@@ -61,6 +82,7 @@ export async function handleGoogleSignIn() {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
+        clearDemoUserData();
         showToast('Google sign-in successful!', 'success');
         showPage('page-dashboard');
     } catch (err) {

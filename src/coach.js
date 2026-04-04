@@ -88,6 +88,7 @@ export function addMessage(content, type) {
     const container = document.getElementById('chat-messages');
     const msgEl     = document.createElement('div');
     msgEl.className = `chat-message ${type}-message`;
+    const initials  = localStorage.getItem('currentUserInitials') || 'KM';
 
     if (type === 'bot') {
         msgEl.innerHTML = `
@@ -101,7 +102,7 @@ export function addMessage(content, type) {
         `;
     } else {
         msgEl.innerHTML = `
-            <div class="message-avatar">KM</div>
+            <div class="message-avatar">${initials}</div>
             <div class="message-content"><p>${content}</p></div>
         `;
     }

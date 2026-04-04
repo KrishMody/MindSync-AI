@@ -14,6 +14,7 @@ import { handleLogin, handleSignup, togglePassword, showToast, handleGoogleSignI
 import { sendMessage, sendQuickAction, handleChatKey, loadChatHistory } from './coach.js';
 import { submitOnboarding, saveDailyCheckin } from './checkin.js';
 import { initCognitiveChart, initPerformanceChart, initBaselineChart } from './charts.js';
+import { updateUserIdentityUI } from './demo.js';
 
 // ============================
 // Expose to HTML (onclick="...")
@@ -113,6 +114,7 @@ window.addEventListener('resize', () => {
 // DOM Ready
 // ============================
 document.addEventListener('DOMContentLoaded', () => {
+    updateUserIdentityUI();
     initParticles();
     loadChatHistory();
 
