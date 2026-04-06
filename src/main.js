@@ -10,25 +10,52 @@ import './styles/layout.css';
 
 // Import all modules
 import { showPage } from './router.js';
-import { handleLogin, handleSignup, togglePassword, showToast, handleGoogleSignIn } from './auth.js';
+import { handleLogin, handleSignup, togglePassword, showToast, handleGoogleSignIn, handleLogout } from './auth.js';
 import { sendMessage, sendQuickAction, handleChatKey, loadChatHistory } from './coach.js';
-import { submitOnboarding, saveDailyCheckin } from './checkin.js';
-import { initCognitiveChart, initPerformanceChart, initBaselineChart } from './charts.js';
+import { submitOnboarding, saveDailyCheckin, openCheckinModal } from './checkin.js';
+import { initCognitiveChart, initPerformanceChart, initBaselineChart, updatePatternCard } from './charts.js';
+import { saveProfileSettings, initiateDeleteAccount, cancelDeleteAccount, confirmDeleteAccount } from './settings.js';
+import { openProtocolModal, closeProtocolModal, toggleSaveProtocol, startProtocol } from './protocols.js';
 import { updateUserIdentityUI } from './demo.js';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase.js';
+import { pullCheckinsFromFirestore } from './sync.js';
 
 // ============================
 // Expose to HTML (onclick="...")
 // ============================
-window.showPage         = showPage;
-window.handleLogin      = handleLogin;
-window.handleSignup     = handleSignup;
-window.togglePassword   = togglePassword;
+window.showPage           = showPage;
+window.handleLogin        = handleLogin;
+window.handleSignup       = handleSignup;
+window.togglePassword     = togglePassword;
 window.handleGoogleSignIn = handleGoogleSignIn;
-window.sendMessage      = sendMessage;
-window.sendQuickAction  = sendQuickAction;
-window.handleChatKey    = handleChatKey;
-window.submitOnboarding  = submitOnboarding;
-window.saveDailyCheckin  = saveDailyCheckin;
+window.handleLogout       = handleLogout;
+window.openCheckinModal   = openCheckinModal;
+window.toggleUserMenu     = function(el) {
+    const menu   = el.querySelector('.user-menu');
+    const isOpen = menu.classList.contains('open');
+    document.querySelectorAll('.user-menu.open').forEach(m => m.classList.remove('open'));
+    if (!isOpen) {
+        const isDemo = localStorage.getItem('isDemoUser') === 'true';
+        menu.querySelectorAll('.demo-only').forEach(item => {
+            item.style.display = isDemo ? 'flex' : 'none';
+        });
+        menu.classList.add('open');
+    }
+};
+window.sendMessage            = sendMessage;
+window.sendQuickAction        = sendQuickAction;
+window.handleChatKey          = handleChatKey;
+window.submitOnboarding       = submitOnboarding;
+window.saveDailyCheckin       = saveDailyCheckin;
+window.saveProfileSettings    = saveProfileSettings;
+window.initiateDeleteAccount  = initiateDeleteAccount;
+window.cancelDeleteAccount    = cancelDeleteAccount;
+window.confirmDeleteAccount   = confirmDeleteAccount;
+window.openProtocolModal      = openProtocolModal;
+window.closeProtocolModal     = closeProtocolModal;
+window.toggleSaveProtocol     = toggleSaveProtocol;
+window.startProtocol          = startProtocol;
 
 // ============================
 // Tab switching (generic)
@@ -38,6 +65,20 @@ document.querySelectorAll('.card-tabs').forEach(tabGroup => {
         tab.addEventListener('click', () => {
             tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
+
+            // Redraw cognitive chart when its tabs are switched
+            if (tabGroup.closest('.trend-card')) {
+                const mode = tab.textContent.trim().toLowerCase();
+                initCognitiveChart(mode);
+            }
+
+            // Redraw insights charts when the page-level range tabs are switched
+            if (tabGroup.closest('#page-insights')) {
+                const mode = tab.textContent.trim().toLowerCase();
+                initPerformanceChart(mode);
+                initBaselineChart();
+                updatePatternCard(mode);
+            }
         });
     });
 });
@@ -102,21 +143,64 @@ window.addEventListener('resize', () => {
     resizeTimeout = setTimeout(() => {
         const activePage = document.querySelector('.page.active');
         if (!activePage) return;
-        if (activePage.id === 'page-dashboard') initCognitiveChart();
+        if (activePage.id === 'page-dashboard') {
+            const trendCard  = document.querySelector('.trend-card');
+            const activeTab  = trendCard?.querySelector('.card-tabs .tab.active');
+            const mode       = activeTab?.textContent.trim().toLowerCase() ?? 'today';
+            initCognitiveChart(mode);
+        }
         if (activePage.id === 'page-insights') {
-            initPerformanceChart();
+            const insightsTab  = activePage.querySelector('.header-actions .card-tabs .tab.active');
+            const insightsMode = insightsTab?.textContent.trim().toLowerCase() ?? '1w';
+            initPerformanceChart(insightsMode);
             initBaselineChart();
+            updatePatternCard(insightsMode);
         }
     }, 250);
+});
+
+// ============================
+// Password Strength Meter
+// ============================
+window.updatePasswordStrength = function(val) {
+    const bars   = [1,2,3,4].map(i => document.getElementById('sb' + i));
+    const label  = document.getElementById('strength-label');
+    if (!bars[0] || !label) return;
+
+    bars.forEach(b => { b.className = 'strength-bar'; });
+
+    let score = 0;
+    if (val.length >= 8)                    score++;
+    if (val.length >= 12)                   score++;
+    if (/[A-Z]/.test(val) && /[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val))          score++;
+
+    const levels = [
+        { cls: 'weak',   text: 'WEAK',   count: 1 },
+        { cls: 'fair',   text: 'FAIR',   count: 2 },
+        { cls: 'good',   text: 'GOOD',   count: 3 },
+        { cls: 'strong', text: 'STRONG', count: 4 },
+    ];
+
+    if (val.length === 0) { label.textContent = '—'; return; }
+    const level = levels[Math.min(score, 3)];
+    bars.slice(0, level.count).forEach(b => b.classList.add(level.cls));
+    label.textContent = level.text;
+    label.style.color = { weak: '#EF4444', fair: '#F59E0B', good: '#10B981', strong: '#06B6D4' }[level.cls];
+};
+
+// Close user menu when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.sidebar-user')) {
+        document.querySelectorAll('.user-menu.open').forEach(m => m.classList.remove('open'));
+    }
 });
 
 // ============================
 // DOM Ready
 // ============================
 document.addEventListener('DOMContentLoaded', () => {
-    updateUserIdentityUI();
     initParticles();
-    loadChatHistory();
 
     const badge = document.getElementById('status-badge');
     if (badge) {
@@ -126,4 +210,27 @@ document.addEventListener('DOMContentLoaded', () => {
             badge.style.transition = 'opacity 0.5s ease';
         }, 200);
     }
+
+    // ============================
+    // Auth State Persistence
+    // ============================
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Pull Firestore check-ins into localStorage before rendering
+            await pullCheckinsFromFirestore();
+            updateUserIdentityUI();
+            loadChatHistory();
+            showPage('page-dashboard');
+        } else {
+            // No session — check if demo mode is active, otherwise show landing
+            const isDemo = localStorage.getItem('isDemoUser') === 'true';
+            if (isDemo) {
+                updateUserIdentityUI();
+                loadChatHistory();
+                showPage('page-dashboard');
+            } else {
+                showPage('page-landing');
+            }
+        }
+    });
 });

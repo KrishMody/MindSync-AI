@@ -3,7 +3,7 @@
 // ============================
 
 // All imports must be at the top of the file
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { auth } from './firebase.js';
 import { showPage } from './router.js';
 import { loadChatHistory } from './coach.js';
@@ -72,6 +72,19 @@ export async function handleSignup(e) {
     } catch (err) {
         showToast(err.message, 'error');
         btn.innerHTML = 'Initialize Profile <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+}
+
+// ============================
+// Logout
+// ============================
+export async function handleLogout() {
+    try {
+        await signOut(auth);
+        clearDemoUserData();
+        showPage('page-login');
+    } catch (err) {
+        showToast(err.message, 'error');
     }
 }
 

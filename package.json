@@ -12,6 +12,8 @@
     "vite": "^5.2.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "@google/generative-ai": "^0.24.1",
     "firebase": "^10.14.1"
   }
 }

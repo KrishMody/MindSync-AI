@@ -2,9 +2,10 @@
 // Router — Page Navigation
 // ============================
 import { animateBurnoutGauge } from './dashboard.js';
-import { initCognitiveChart } from './charts.js';
-import { initPerformanceChart, initBaselineChart } from './charts.js';
+import { initCognitiveChart, initPerformanceChart, initBaselineChart, updatePatternCard } from './charts.js';
 import { checkDailyModal } from './checkin.js';
+import { initSettingsPage } from './settings.js';
+import { initProtocolsPage } from './protocols.js';
 
 export function showPage(pageId) {
     const current = document.querySelector('.page.active');
@@ -52,15 +53,25 @@ export function showPage(pageId) {
         }
         if (pageId === 'page-insights') {
             setTimeout(() => {
-                initPerformanceChart();
+                const insightsPage = document.getElementById('page-insights');
+                const activeTab    = insightsPage?.querySelector('.header-actions .card-tabs .tab.active');
+                const mode         = activeTab?.textContent.trim().toLowerCase() ?? '1w';
+                initPerformanceChart(mode);
                 initBaselineChart();
+                updatePatternCard(mode);
             }, 300);
+        }
+        if (pageId === 'page-settings') {
+            initSettingsPage();
+        }
+        if (pageId === 'page-protocols') {
+            initProtocolsPage();
         }
     }, 200);
 }
 
 export function updateSidebarState(pageId) {
-    const pages = ['page-dashboard', 'page-coach', 'page-insights'];
+    const pages = ['page-dashboard', 'page-coach', 'page-insights', 'page-protocols'];
     document.querySelectorAll('.sidebar-nav').forEach(nav => {
         nav.querySelectorAll('.sidebar-link').forEach((link, i) => {
             link.classList.remove('active');

@@ -3,6 +3,7 @@
 // ============================
 import { showPage } from './router.js';
 import { showToast } from './auth.js';
+import { syncCheckinToFirestore } from './sync.js';
 
 export function submitOnboarding() {
     const sliderVal = document.getElementById('cognitive-slider').value;
@@ -19,6 +20,11 @@ export function checkDailyModal() {
     }
 }
 
+export function openCheckinModal() {
+    const modal = document.getElementById('daily-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
 export function saveDailyCheckin() {
     const sleep  = document.getElementById('checkin-sleep').value;
     const stress = document.getElementById('checkin-stress').value;
@@ -29,8 +35,11 @@ export function saveDailyCheckin() {
         return;
     }
 
-    const today = new Date().toDateString();
-    localStorage.setItem('dailyCheckIn_' + today, JSON.stringify({ sleep, stress, mood }));
+    const today       = new Date().toDateString();
+    const checkinData = { sleep, stress, mood };
+    localStorage.setItem('dailyCheckIn_' + today, JSON.stringify(checkinData));
+
+    syncCheckinToFirestore(today, checkinData); // fire-and-forget
 
     showToast('Daily markers recorded. Algorithms updated.', 'success');
 
