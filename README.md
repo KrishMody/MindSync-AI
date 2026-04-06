@@ -26,7 +26,6 @@ graph TB
     subgraph AI ["AI Layer"]
         Claude[Anthropic Claude\nHaiku 4.5 — Primary]
         Gemini[Google Gemini\n2.0 Flash — Fallback]
-        Fallback[Static Fallbacks\nOffline Responses]
     end
 
     subgraph Firebase ["Firebase Backend"]
@@ -73,12 +72,10 @@ flowchart LR
     LS --> CoachContext[AI Context Builder\nLatest Metrics Injected]
 
     CoachContext --> ClaudeAPI[Claude API\nStreaming Response]
-    ClaudeAPI -- "failure" --> GeminiAPI[Gemini API\nFallback Response]
-    GeminiAPI -- "failure" --> StaticReply[Static Reply\nOffline Fallback]
-
+    ClaudeAPI -- "failure" --> GeminiAPI[Gemini API]
+    
     ClaudeAPI --> ChatUI[Chat Interface]
     GeminiAPI --> ChatUI
-    StaticReply --> ChatUI
 
     ChatUI --> LS
 ```
