@@ -2,37 +2,46 @@
 // MindSync AI — Entry Point
 // ============================
 
-// Import all CSS (Vite handles bundling)
+// CSS (Vite bundles these)
 import './styles/base.css';
 import './styles/components.css';
 import './styles/pages.css';
 import './styles/layout.css';
 
-// Import all modules
+// Modules
 import { showPage } from './router.js';
-import { handleLogin, handleSignup, togglePassword, showToast, handleGoogleSignIn } from './auth.js';
-import { sendMessage, sendQuickAction, handleChatKey, loadChatHistory } from './coach.js';
+import {
+    handleLogin, handleSignup, togglePassword,
+    showToast, handleGoogleSignIn, handleSignOut,
+    initAuthStateListener
+} from './auth.js';
+import {
+    sendMessage, sendQuickAction, handleChatKey,
+    loadChatHistory, clearChatHistory
+} from './coach.js';
 import { submitOnboarding, saveDailyCheckin } from './checkin.js';
-import { initCognitiveChart, initPerformanceChart, initBaselineChart } from './charts.js';
+import {
+    initCognitiveChart, initPerformanceChart,
+    initBaselineChart
+} from './charts.js';
 import { updateUserIdentityUI } from './demo.js';
 
-// ============================
-// Expose to HTML (onclick="...")
-// ============================
-window.showPage         = showPage;
-window.handleLogin      = handleLogin;
-window.handleSignup     = handleSignup;
-window.togglePassword   = togglePassword;
+// ── Expose to HTML onclick="..." ─────────────────────────────────────────────
+window.showPage = showPage;
+window.handleLogin = handleLogin;
+window.handleSignup = handleSignup;
+window.togglePassword = togglePassword;
 window.handleGoogleSignIn = handleGoogleSignIn;
-window.sendMessage      = sendMessage;
-window.sendQuickAction  = sendQuickAction;
-window.handleChatKey    = handleChatKey;
-window.submitOnboarding  = submitOnboarding;
-window.saveDailyCheckin  = saveDailyCheckin;
+window.handleSignOut = handleSignOut;
+window.toggleUserMenu = toggleUserMenu;
+window.sendMessage = sendMessage;
+window.sendQuickAction = sendQuickAction;
+window.handleChatKey = handleChatKey;
+window.clearChatHistory = clearChatHistory;
+window.submitOnboarding = submitOnboarding;
+window.saveDailyCheckin = saveDailyCheckin;
 
-// ============================
-// Tab switching (generic)
-// ============================
+// ── Tab switching ─────────────────────────────────────────────────────────────
 document.querySelectorAll('.card-tabs').forEach(tabGroup => {
     tabGroup.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -42,12 +51,10 @@ document.querySelectorAll('.card-tabs').forEach(tabGroup => {
     });
 });
 
-// ============================
-// Onboarding slider
-// ============================
+// ── Onboarding slider ─────────────────────────────────────────────────────────
 const cogSlider = document.getElementById('cognitive-slider');
 const sliderVal = document.getElementById('slider-value');
-if (cogSlider) {
+if (cogSlider && sliderVal) {
     cogSlider.addEventListener('input', (e) => {
         sliderVal.textContent = e.target.value;
     });
@@ -58,16 +65,14 @@ document.querySelectorAll('.state-chips .chip').forEach(chip => {
     chip.addEventListener('click', () => chip.classList.toggle('active'));
 });
 
-// ============================
-// Floating Particles (Landing)
-// ============================
+// ── Floating Particles (Landing) ──────────────────────────────────────────────
 function initParticles() {
     const container = document.getElementById('particles-container');
     if (!container) return;
 
     for (let i = 0; i < 50; i++) {
-        const particle = document.createElement('div');
-        particle.style.cssText = `
+        const p = document.createElement('div');
+        p.style.cssText = `
             position: absolute;
             width: ${Math.random() * 3 + 1}px;
             height: ${Math.random() * 3 + 1}px;
@@ -78,7 +83,7 @@ function initParticles() {
             animation: particleFloat ${Math.random() * 15 + 10}s linear infinite;
             animation-delay: -${Math.random() * 15}s;
         `;
-        container.appendChild(particle);
+        container.appendChild(p);
     }
 
     const style = document.createElement('style');
@@ -93,31 +98,50 @@ function initParticles() {
     document.head.appendChild(style);
 }
 
-// ============================
-// Window Resize — Redraw Charts
-// ============================
+// ── Window Resize — Redraw Charts ─────────────────────────────────────────────
 let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
-        const activePage = document.querySelector('.page.active');
-        if (!activePage) return;
-        if (activePage.id === 'page-dashboard') initCognitiveChart();
-        if (activePage.id === 'page-insights') {
-            initPerformanceChart();
-            initBaselineChart();
-        }
+        const active = document.querySelector('.page.active');
+        if (!active) return;
+        if (active.id === 'page-dashboard') initCognitiveChart();
+        if (active.id === 'page-insights') { initPerformanceChart(); initBaselineChart(); }
     }, 250);
 });
 
-// ============================
-// DOM Ready
-// ============================
+// ── User Menu Toggle ─────────────────────────────────────────────────────────
+export function toggleUserMenu(e) {
+    e.stopPropagation();
+    const dropdown = e.currentTarget.querySelector('.user-dropdown');
+    const isShowing = dropdown.classList.contains('show');
+
+    // Close all other dropdowns first
+    document.querySelectorAll('.user-dropdown').forEach(d => d.classList.remove('show'));
+
+    if (!isShowing) dropdown.classList.add('show');
+}
+
+// Global click to close dropdowns
+document.addEventListener('click', () => {
+    document.querySelectorAll('.user-dropdown').forEach(d => d.classList.remove('show'));
+});
+
+// ── DOM Ready ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    // Sync name/avatar from localStorage immediately (before Firebase responds)
     updateUserIdentityUI();
+
+    // Start Firebase auth state listener — handles session persistence + route guarding
+    initAuthStateListener();
+
+    // Init particles on landing
     initParticles();
+
+    // Restore chat from localStorage
     loadChatHistory();
 
+    // Landing badge fade-in
     const badge = document.getElementById('status-badge');
     if (badge) {
         badge.style.opacity = '0';
